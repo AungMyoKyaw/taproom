@@ -1,0 +1,162 @@
+[
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "01-installed-dark",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "02-discover-dark",
+      "x": 1560,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "03-outdated-log-dark",
+      "x": 3120,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "04-services-maintenance-dark",
+      "x": 4680,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "05-palette-menubar-dark",
+      "x": 6240,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "01-installed-light",
+      "x": 0,
+      "y": 1020,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "02-discover-light",
+      "x": 1560,
+      "y": 1020,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "03-outdated-log-light",
+      "x": 3120,
+      "y": 1020,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "04-services-maintenance-light",
+      "x": 4680,
+      "y": 1020,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "05-palette-menubar-light",
+      "x": 6240,
+      "y": 1020,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "clip": true,
+        "cornerRadius": 16
+      },
+      "select": false
+    }
+  }
+]

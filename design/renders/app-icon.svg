@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="linear-gradient-1" x1="256" y1="32" x2="256" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#262b35"/>
+      <stop offset="0.55" stop-color="#161920"/>
+      <stop offset="1" stop-color="#0e1014"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="116" y1="256" x2="396" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="244" y1="176" x2="244" y2="394" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="0.5" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-4" x1="244" y1="134" x2="244" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fef3c7"/>
+    </linearGradient>
+  </defs>
+  <title>TaproomIcon</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path d="M132 32 L380 32 C435.228 32 480 76.772 480 132 L480 380 C480 435.228 435.228 480 380 480 L132 480 C76.772 480 32 435.228 32 380 L32 132 C32 76.772 76.772 32 132 32 Z" fill="url(#linear-gradient-1)" stroke="#ffffff" stroke-miterlimit="10"/>
+    <circle cx="256" cy="256" r="140" fill="url(#linear-gradient-2)"/>
+    <path d="M350 212 L360 212 C377.673 212 392 226.327 392 244 L392 304 C392 321.673 377.673 336 360 336 L350 336 C332.327 336 318 321.673 318 304 L318 244 C318 226.327 332.327 212 350 212 Z" fill="none" stroke="#f59e0b" stroke-width="24" stroke-linejoin="round"/>
+    <path d="M186 176 L302 176 C324.091 176 342 193.909 342 216 L342 354 C342 376.091 324.091 394 302 394 L186 394 C163.909 394 146 376.091 146 354 L146 216 C146 193.909 163.909 176 186 176 Z" fill="url(#linear-gradient-3)" stroke="#fde68a" stroke-width="2" stroke-miterlimit="10"/>
+    <path d="M199 236 L199 236 C205.075 236 210 240.925 210 247 L210 341 C210 347.075 205.075 352 199 352 L199 352 C192.925 352 188 347.075 188 341 L188 247 C188 240.925 192.925 236 199 236 Z" fill="#141619"/>
+    <path d="M244 236 L244 236 C250.075 236 255 240.925 255 247 L255 341 C255 347.075 250.075 352 244 352 L244 352 C237.925 352 233 347.075 233 341 L233 247 C233 240.925 237.925 236 244 236 Z" fill="#141619"/>
+    <path d="M289 236 L289 236 C295.075 236 300 240.925 300 247 L300 341 C300 347.075 295.075 352 289 352 L289 352 C282.925 352 278 347.075 278 341 L278 247 C278 240.925 282.925 236 289 236 Z" fill="#141619"/>
+    <path d="M168 134 L320 134 C337.673 134 352 148.327 352 166 L352 166 C352 183.673 337.673 198 320 198 L168 198 C150.327 198 136 183.673 136 166 L136 166 C136 148.327 150.327 134 168 134 Z" fill="url(#linear-gradient-4)" stroke="#ffffff" stroke-width="1.5" stroke-miterlimit="10"/>
+    <circle cx="204" cy="148" r="42" fill="#ffffff"/>
+    <circle cx="274" cy="146" r="48" fill="#fffbeb"/>
+    <path d="M132 40 L380 40 C430.81 40 472 81.19 472 132 L472 380 C472 430.81 430.81 472 380 472 L132 472 C81.19 472 40 430.81 40 380 L40 132 C40 81.19 81.19 40 132 40 Z" fill="none" stroke="#ffffff" stroke-width="2" stroke-miterlimit="10"/>
+  </g>
+</svg>
