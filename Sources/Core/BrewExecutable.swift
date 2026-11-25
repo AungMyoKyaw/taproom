@@ -76,23 +76,18 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
 
     private func loadLoginShellEnv() -> [String: String] {
         envLock.lock()
+        defer { envLock.unlock() }
         if let cached = cachedShellEnv {
-            envLock.unlock()
             return cached
         }
-        envLock.unlock()
-
-        let captured = Self.captureLoginShellVariables()
-        envLock.lock()
-        if cachedShellEnv == nil {
+        if let captured = Self.captureLoginShellVariables() {
             cachedShellEnv = captured
+            return captured
         }
-        let result = cachedShellEnv ?? captured
-        envLock.unlock()
-        return result
+        return [:]
     }
 
-    private static func captureLoginShellVariables() -> [String: String] {
+    private static func captureLoginShellVariables() -> [String: String]? {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
         proc.arguments = ["-lc", "env"]
@@ -104,7 +99,7 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
         do {
             try proc.run()
         } catch {
-            return [:]
+            return nil
         }
 
         let box = LockedDataBox()
@@ -116,7 +111,7 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
         }
         if sema.wait(timeout: .now() + 1.5) == .timedOut {
             if proc.isRunning { proc.terminate() }
-            return [:]
+            return nil
         }
 
         let allowedProxyKeys: Set<String> = [
@@ -220,10 +215,15 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
             throw BrewRunnerError.brewNotFound
         }
 
+        let executable = brewPath
+        let env = await Task.detached(priority: .userInitiated) {
+            self.buildEnvironment()
+        }.value
+
         let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: brewPath)
+        proc.executableURL = URL(fileURLWithPath: executable)
         proc.arguments = args
-        proc.environment = buildEnvironment()
+        proc.environment = env
 
         let pipe = Pipe()
         proc.standardOutput = pipe

@@ -120,7 +120,7 @@ struct OutdatedView: View {
             .background(TaproomTheme.surfaceElevated)
 
             Divider()
-            LiveLogTextView(lines: job.logLines)
+            LiveLogTextView(jobID: job.id, lines: job.logLines)
                 .background(TaproomTheme.surface)
         }
     }

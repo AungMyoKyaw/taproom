@@ -102,7 +102,7 @@ final class AppState {
     let catalog: CatalogStore?
     private let userDefaults: UserDefaults
 
-    private var refreshTask: Task<Void, Never>?
+    private var pendingRefresh: Bool = false
     private var diskSizeTask: Task<Void, Never>?
     private var backgroundTimerTask: Task<Void, Never>?
 
@@ -198,8 +198,12 @@ final class AppState {
     }
 
     func refreshAll() async {
-        guard !isRefreshing else { return }
+        if isRefreshing {
+            pendingRefresh = true
+            return
+        }
         isRefreshing = true
+        pendingRefresh = false
         lastError = nil
 
         let runner = self.runner
@@ -266,6 +270,10 @@ final class AppState {
         }
 
         isRefreshing = false
+        if pendingRefresh {
+            pendingRefresh = false
+            await refreshAll()
+        }
     }
 
     private static func formatCommandFailure(_ command: String, output: BrewCommandOutput) -> String {
@@ -403,8 +411,10 @@ final class AppState {
             }
             guard !Task.isCancelled, !computed.isEmpty else { return }
             let results = computed
+            let taskCancelled = Task.isCancelled
+            guard !taskCancelled else { return }
             await MainActor.run { [weak self] in
-                guard let self else { return }
+                guard let self, !Task.isCancelled else { return }
                 for idx in self.installedPackages.indices {
                     let id = self.installedPackages[idx].id
                     if let match = results[id] {

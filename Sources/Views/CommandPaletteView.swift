@@ -1,7 +1,7 @@
 import SwiftUI
 
 private struct PaletteCommand: Identifiable {
-    let id = UUID()
+    let id: String
     let title: String
     let subtitle: String
     let shortcut: String?
@@ -130,26 +130,31 @@ struct CommandPaletteView: View {
     private var filteredCommands: [PaletteCommand] {
         var list: [PaletteCommand] = [
             PaletteCommand(
+                id: "action.upgradeAll",
                 title: "Upgrade All Outdated Packages (\(appState.outdatedPackages.count))",
                 subtitle: "Action · Run brew upgrade",
                 shortcut: "⌘U"
             ) { appState.upgradeAll() },
             PaletteCommand(
+                id: "action.refreshAll",
                 title: "Refresh Homebrew State",
                 subtitle: "Action · Reload formulae, casks, services, taps",
                 shortcut: "⌘R"
             ) { Task { await appState.refreshAll() } },
             PaletteCommand(
+                id: "action.doctor",
                 title: "Run brew doctor Diagnostics",
                 subtitle: "Maintenance · System health",
                 shortcut: nil
             ) { appState.runDoctor() },
             PaletteCommand(
-                title: "Clean Homebrew Cache (\(appState.formattedCacheSize))",
-                subtitle: "Maintenance · brew cleanup --prune=all",
+                id: "action.maintenance",
+                title: "Open Maintenance & Cache Cleanup (\(appState.formattedCacheSize))",
+                subtitle: "Maintenance · Clean cache or run autoremove",
                 shortcut: nil
-            ) { appState.cleanCache() },
+            ) { appState.selectedSection = .maintenance },
             PaletteCommand(
+                id: "action.inspector",
                 title: "Toggle Package Inspector",
                 subtitle: "View · Show or hide right detail pane",
                 shortcut: "⌘I"
@@ -159,6 +164,7 @@ struct CommandPaletteView: View {
         for section in SidebarSection.allCases {
             list.append(
                 PaletteCommand(
+                    id: "nav.\(section.rawValue)",
                     title: "Go to \(section.title)",
                     subtitle: "Navigation",
                     shortcut: nil
@@ -170,6 +176,7 @@ struct CommandPaletteView: View {
             let verb = srv.status.isRunning ? "Stop" : "Start"
             list.append(
                 PaletteCommand(
+                    id: "srv.\(srv.name)",
                     title: "\(verb) Service \(srv.name)",
                     subtitle: "Service · \(srv.status.displayLabel)",
                     shortcut: nil
@@ -182,6 +189,7 @@ struct CommandPaletteView: View {
         for pkg in appState.installedPackages {
             list.append(
                 PaletteCommand(
+                    id: "pkg.\(pkg.id)",
                     title: "Inspect \(pkg.name) (\(pkg.version))",
                     subtitle: "\(pkg.kind.badgeTitle) · \(pkg.tap)",
                     shortcut: nil

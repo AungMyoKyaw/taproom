@@ -2,7 +2,13 @@ import AppKit
 import SwiftUI
 
 struct LiveLogTextView: NSViewRepresentable {
+    let jobID: UUID?
     let lines: [String]
+
+    init(jobID: UUID? = nil, lines: [String]) {
+        self.jobID = jobID
+        self.lines = lines
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -44,11 +50,14 @@ struct LiveLogTextView: NSViewRepresentable {
         }
 
         let nearBottom = scrollView.documentVisibleRect.maxY >= textView.bounds.height - 24
-        let isSameStream = coordinator.firstLine == lines.first && lines.count >= coordinator.renderedLineCount
+        let isSameStream = coordinator.jobID == jobID
+            && coordinator.firstLine == lines.first
+            && lines.count >= coordinator.renderedLineCount
 
         if !isSameStream {
             let clean = lines.map(Self.stripANSI).joined(separator: "\n")
             textView.string = clean
+            coordinator.jobID = jobID
             coordinator.firstLine = lines.first
             coordinator.renderedLineCount = lines.count
             textView.scrollToEndOfDocument(nil)
@@ -72,6 +81,7 @@ struct LiveLogTextView: NSViewRepresentable {
     }
 
     final class Coordinator {
+        var jobID: UUID?
         var firstLine: String?
         var renderedLineCount: Int = 0
     }

@@ -211,7 +211,7 @@ private struct LiveLogSheetView: View {
             }
             .padding(16)
             Divider()
-            LiveLogTextView(lines: job?.logLines ?? ["No active or recent job output."])
+            LiveLogTextView(jobID: job?.id, lines: job?.logLines ?? ["No active or recent job output."])
                 .background(TaproomTheme.surface)
         }
         .frame(width: 780, height: 480)
