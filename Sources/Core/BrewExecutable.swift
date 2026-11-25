@@ -63,6 +63,8 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
     let brewPath: String
     let prefixPath: String
     private let askpassPath: String?
+    private let envLock = NSLock()
+    private var cachedShellEnv: [String: String]?
 
     init() {
         let candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
@@ -72,8 +74,73 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
         self.askpassPath = AskpassHelper.ensureScriptPath()
     }
 
+    private func loadLoginShellEnv() -> [String: String] {
+        envLock.lock()
+        if let cached = cachedShellEnv {
+            envLock.unlock()
+            return cached
+        }
+        envLock.unlock()
+
+        let captured = Self.captureLoginShellVariables()
+        envLock.lock()
+        if cachedShellEnv == nil {
+            cachedShellEnv = captured
+        }
+        let result = cachedShellEnv ?? captured
+        envLock.unlock()
+        return result
+    }
+
+    private static func captureLoginShellVariables() -> [String: String] {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        proc.arguments = ["-lc", "env"]
+        let outPipe = Pipe()
+        proc.standardOutput = outPipe
+        proc.standardError = FileHandle.nullDevice
+        proc.standardInput = FileHandle.nullDevice
+
+        do {
+            try proc.run()
+        } catch {
+            return [:]
+        }
+
+        let box = LockedDataBox()
+        let sema = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .userInitiated).async {
+            box.set(outPipe.fileHandleForReading.readDataToEndOfFile())
+            proc.waitUntilExit()
+            sema.signal()
+        }
+        if sema.wait(timeout: .now() + 1.5) == .timedOut {
+            if proc.isRunning { proc.terminate() }
+            return [:]
+        }
+
+        let allowedProxyKeys: Set<String> = [
+            "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+            "http_proxy", "https_proxy", "all_proxy", "no_proxy"
+        ]
+        var vars: [String: String] = [:]
+        let text = String(decoding: box.get(), as: UTF8.self)
+        for line in text.split(whereSeparator: \.isNewline) {
+            guard let eqIdx = line.firstIndex(of: "=") else { continue }
+            let key = String(line[..<eqIdx])
+            let value = String(line[line.index(after: eqIdx)...])
+            if key.hasPrefix("HOMEBREW_") || allowedProxyKeys.contains(key) {
+                vars[key] = value
+            }
+        }
+        return vars
+    }
+
     private func buildEnvironment() -> [String: String] {
         var env = ProcessInfo.processInfo.environment
+        for (key, value) in loadLoginShellEnv() {
+            env[key] = value
+        }
         let extraPath = "\(prefixPath)/bin:\(prefixPath)/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
         if let existing = env["PATH"], !existing.isEmpty {
             env["PATH"] = "\(extraPath):\(existing)"
@@ -94,10 +161,10 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
             throw BrewRunnerError.brewNotFound
         }
         let executable = brewPath
-        let env = buildEnvironment()
 
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
+                let env = self.buildEnvironment()
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: executable)
                 proc.arguments = args

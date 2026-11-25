@@ -1,6 +1,32 @@
 import Foundation
 import Observation
 
+private final class LineBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: [String] = []
+    private var flushScheduled = false
+
+    func append(_ line: String) -> Bool {
+        lock.lock()
+        pending.append(line)
+        let shouldSchedule = !flushScheduled
+        if shouldSchedule {
+            flushScheduled = true
+        }
+        lock.unlock()
+        return shouldSchedule
+    }
+
+    func drain() -> [String] {
+        lock.lock()
+        let lines = pending
+        pending.removeAll(keepingCapacity: true)
+        flushScheduled = false
+        lock.unlock()
+        return lines
+    }
+}
+
 @MainActor
 @Observable
 final class MutationQueue {
@@ -74,19 +100,35 @@ final class MutationQueue {
         jobs[nextIndex].logLines.append("$ brew \(args.joined(separator: " "))")
 
         do {
+            let lineBuffer = LineBuffer()
             let (handle, completion) = try await runner.stream(args: args) { [weak self] line in
-                Task { @MainActor [weak self] in
-                    guard let self, let idx = self.jobs.firstIndex(where: { $0.id == jobID }) else { return }
-                    self.jobs[idx].logLines.append(line)
+                if lineBuffer.append(line) {
+                    Task { @MainActor [weak self] in
+                        try? await Task.sleep(for: .milliseconds(50))
+                        let batch = lineBuffer.drain()
+                        guard !batch.isEmpty, let self, let idx = self.jobs.firstIndex(where: { $0.id == jobID }) else { return }
+                        self.jobs[idx].logLines.append(contentsOf: batch)
+                    }
                 }
             }
             activeHandle = handle
             let exitCode = try await completion.value
             activeHandle = nil
 
+            let remaining = lineBuffer.drain()
+            if !remaining.isEmpty, let idx = jobs.firstIndex(where: { $0.id == jobID }) {
+                jobs[idx].logLines.append(contentsOf: remaining)
+            }
+
             if let idx = jobs.firstIndex(where: { $0.id == jobID }) {
                 if jobs[idx].state != .cancelled {
-                    jobs[idx].state = exitCode == 0 ? .succeeded : .failed("Exited with code \(exitCode)")
+                    if exitCode == 0 {
+                        jobs[idx].state = .succeeded
+                    } else if Self.isAuthCancelled(lines: jobs[idx].logLines) {
+                        jobs[idx].state = .failed("Authentication cancelled")
+                    } else {
+                        jobs[idx].state = .failed("Exited with code \(exitCode)")
+                    }
                     jobs[idx].finishedAt = Date()
                 }
             }
@@ -106,6 +148,18 @@ final class MutationQueue {
             await processNext()
         } else {
             await onDrain?()
+        }
+    }
+
+    private static func isAuthCancelled(lines: [String]) -> Bool {
+        let markers = [
+            "sudo: a password is required",
+            "no askpass program",
+            "User canceled",
+            "(-128)"
+        ]
+        return lines.contains { line in
+            markers.contains { line.localizedCaseInsensitiveContains($0) }
         }
     }
 }

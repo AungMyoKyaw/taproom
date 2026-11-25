@@ -121,14 +121,41 @@ struct MainWindowView: View {
 
     @ViewBuilder
     private var detailContent: some View {
-        switch appState.selectedSection {
-        case .installed: InstalledPackagesView()
-        case .outdated: OutdatedView()
-        case .discover: DiscoverView()
-        case .services: ServicesView()
-        case .taps: TapsView()
-        case .maintenance: MaintenanceView()
-        case .brewfile: BrewfileView()
+        VStack(spacing: 0) {
+            if let error = appState.lastError {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(TaproomTheme.statusError)
+                    Text(error)
+                        .font(TaproomTheme.mono(11))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .textSelection(.enabled)
+                    Spacer()
+                    Button("Dismiss") {
+                        appState.dismissError()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(TaproomTheme.statusError.opacity(0.12))
+                Divider()
+            }
+
+            Group {
+                switch appState.selectedSection {
+                case .installed: InstalledPackagesView()
+                case .outdated: OutdatedView()
+                case .discover: DiscoverView()
+                case .services: ServicesView()
+                case .taps: TapsView()
+                case .maintenance: MaintenanceView()
+                case .brewfile: BrewfileView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
