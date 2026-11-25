@@ -3,17 +3,28 @@ import SwiftUI
 struct PackageInspectorView: View {
     @Environment(AppState.self) private var appState
     let package: BrewPackage?
+    @State private var confirmUninstallPresented = false
 
     var body: some View {
         Group {
             if let pkg = package {
+                let reverseDeps = appState.dependents(of: pkg.name)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         header(pkg)
                         actionButtons(pkg)
                         metadataCard(pkg)
                         if !pkg.dependencies.isEmpty {
-                            dependenciesSection(pkg)
+                            chipSection(
+                                title: "DEPENDENCIES (\(pkg.dependencies.count))",
+                                items: pkg.dependencies
+                            )
+                        }
+                        if !reverseDeps.isEmpty {
+                            chipSection(
+                                title: "REQUIRED BY (\(reverseDeps.count))",
+                                items: reverseDeps.map(\.name)
+                            )
                         }
                         if let caveats = pkg.caveats, !caveats.isEmpty {
                             caveatsSection(caveats)
@@ -22,6 +33,33 @@ struct PackageInspectorView: View {
                     .padding(20)
                 }
                 .background(TaproomTheme.surfaceElevated)
+                .confirmationDialog(
+                    "Uninstall \(pkg.name)?",
+                    isPresented: $confirmUninstallPresented,
+                    titleVisibility: .visible
+                ) {
+                    if pkg.kind == .cask {
+                        Button("Uninstall", role: .destructive) {
+                            appState.uninstallPackage(pkg, zap: false)
+                        }
+                        Button("Uninstall & Zap (Remove Settings & Cache)", role: .destructive) {
+                            appState.uninstallPackage(pkg, zap: true)
+                        }
+                    } else {
+                        Button("Uninstall \(pkg.name)", role: .destructive) {
+                            appState.uninstallPackage(pkg, zap: false)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    if pkg.kind == .cask {
+                        Text("Zap removes app preferences, caches, and support files in addition to the cask.")
+                    } else if !reverseDeps.isEmpty {
+                        Text("Required by: \(reverseDeps.map(\.name).joined(separator: ", ")). Uninstalling may break those packages.")
+                    } else {
+                        Text("This runs brew uninstall \(pkg.name).")
+                    }
+                }
             } else {
                 ContentUnavailableView(
                     "No Package Selected",
@@ -76,7 +114,7 @@ struct PackageInspectorView: View {
             }
 
             Button(role: .destructive) {
-                appState.uninstallPackage(pkg)
+                confirmUninstallPresented = true
             } label: {
                 Label("Uninstall", systemImage: "trash")
                     .frame(maxWidth: .infinity)
@@ -89,6 +127,12 @@ struct PackageInspectorView: View {
         VStack(spacing: 10) {
             metaRow("Full Name", pkg.fullName)
             metaRow("Install Mode", pkg.installedOnRequest ? "Leaf (Requested)" : "Dependency")
+            if pkg.diskSizeBytes != nil {
+                metaRow("Disk Size", pkg.formattedSize)
+            }
+            if let path = pkg.installedPath {
+                metaRow("Path", path)
+            }
             if let license = pkg.license {
                 metaRow("License", license)
             }
@@ -132,12 +176,14 @@ struct PackageInspectorView: View {
         }
     }
 
-    private func dependenciesSection(_ pkg: BrewPackage) -> some View {
+    private func chipSection(title: String, items: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("DEPENDENCIES (\(pkg.dependencies.count))")
+            Text(title)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
-            FlowChipsView(items: pkg.dependencies)
+            FlowChipsView(items: items, installedNames: Set(appState.installedPackages.map(\.name))) { name in
+                appState.selectPackage(named: name)
+            }
         }
     }
 
@@ -179,20 +225,31 @@ struct KindBadge: View {
 
 private struct FlowChipsView: View {
     let items: [String]
+    let installedNames: Set<String>
+    let onSelect: (String) -> Void
+
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 95), spacing: 6)], alignment: .leading, spacing: 6) {
             ForEach(items, id: \.self) { dep in
-                Text(dep)
-                    .font(TaproomTheme.mono(11))
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(TaproomTheme.surface, in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(TaproomTheme.border, lineWidth: 1)
-                    )
+                let isInstalled = installedNames.contains(dep)
+                Button {
+                    if isInstalled { onSelect(dep) }
+                } label: {
+                    Text(dep)
+                        .font(TaproomTheme.mono(11))
+                        .foregroundStyle(isInstalled ? TaproomTheme.accent : .primary)
+                        .lineLimit(1)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(TaproomTheme.surface, in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isInstalled ? TaproomTheme.accent.opacity(0.35) : TaproomTheme.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(!isInstalled)
             }
         }
     }

@@ -56,3 +56,15 @@ enum TaproomTheme {
         .system(size: size, weight: weight, design: .monospaced)
     }
 }
+
+extension View {
+    func taproomCard(cornerRadius: CGFloat = 10, padding: CGFloat = 14) -> some View {
+        self
+            .padding(padding)
+            .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(TaproomTheme.border, lineWidth: 1)
+            )
+    }
+}

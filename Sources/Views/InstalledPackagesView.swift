@@ -2,6 +2,11 @@ import SwiftUI
 
 struct InstalledPackagesView: View {
     @Environment(AppState.self) private var appState
+    @State private var sortOrder = [KeyPathComparator(\BrewPackage.name)]
+
+    private var sortedPackages: [BrewPackage] {
+        appState.filteredInstalledPackages.sorted(using: sortOrder)
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -14,8 +19,8 @@ struct InstalledPackagesView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(TaproomTheme.surface)
             } else {
-                Table(appState.filteredInstalledPackages, selection: $state.selectedPackageID) {
-                    TableColumn("Package") { pkg in
+                Table(sortedPackages, selection: $state.selectedPackageID, sortOrder: $sortOrder) {
+                    TableColumn("Package", value: \.name) { pkg in
                         VStack(alignment: .leading, spacing: 1) {
                             Text(pkg.name)
                                 .font(.system(size: 13, weight: .medium))
@@ -28,29 +33,36 @@ struct InstalledPackagesView: View {
                         }
                         .padding(.vertical, 2)
                     }
-                    .width(min: 200, ideal: 280)
+                    .width(min: 190, ideal: 260)
 
-                    TableColumn("Kind") { pkg in
+                    TableColumn("Kind", value: \.sortableKind) { pkg in
                         KindBadge(kind: pkg.kind)
                     }
                     .width(78)
 
-                    TableColumn("Version") { pkg in
+                    TableColumn("Version", value: \.version) { pkg in
                         let isOutdated = appState.outdatedIDs.contains(pkg.id)
                         Text(pkg.version)
                             .font(TaproomTheme.mono(12, weight: .medium))
                             .foregroundStyle(isOutdated ? TaproomTheme.statusOutdated : .secondary)
                     }
-                    .width(min: 100, ideal: 140)
+                    .width(min: 95, ideal: 130)
 
-                    TableColumn("Tap") { pkg in
+                    TableColumn("Size", value: \.sortableSize) { pkg in
+                        Text(pkg.formattedSize)
+                            .font(TaproomTheme.mono(11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(min: 70, ideal: 86)
+
+                    TableColumn("Tap", value: \.tap) { pkg in
                         Text(pkg.tap)
                             .font(TaproomTheme.mono(11))
                             .foregroundStyle(.secondary)
                     }
-                    .width(min: 110, ideal: 150)
+                    .width(min: 105, ideal: 140)
 
-                    TableColumn("Status") { pkg in
+                    TableColumn("Status", value: \.sortableStatus) { pkg in
                         let isOutdated = appState.outdatedIDs.contains(pkg.id)
                         HStack(spacing: 6) {
                             Circle()
@@ -61,7 +73,7 @@ struct InstalledPackagesView: View {
                                 .foregroundStyle(isOutdated ? TaproomTheme.statusOutdated : .secondary)
                         }
                     }
-                    .width(96)
+                    .width(92)
                 }
                 .scrollContentBackground(.hidden)
                 .background(TaproomTheme.surface)

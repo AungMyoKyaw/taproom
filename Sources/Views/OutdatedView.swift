@@ -65,11 +65,21 @@ struct OutdatedView: View {
     }
 
     private var headerBar: some View {
-        HStack {
+        @Bindable var state = appState
+
+        return HStack(spacing: 12) {
             Text("\(appState.outdatedPackages.count) package\(appState.outdatedPackages.count == 1 ? "" : "s") with newer versions available.")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
             Spacer()
+            Toggle("Greedy Casks", isOn: $state.includeGreedyCasks)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .help("Include auto-updating casks (--greedy)")
+                .onChange(of: appState.includeGreedyCasks) { _, _ in
+                    Task { await appState.refreshAll() }
+                }
+
             Button("Check Now") {
                 Task { await appState.refreshAll() }
             }
@@ -110,7 +120,7 @@ struct OutdatedView: View {
             .background(TaproomTheme.surfaceElevated)
 
             Divider()
-            LiveLogTextView(lines: job.logLines)
+            LiveLogTextView(jobID: job.id, lines: job.logLines)
                 .background(TaproomTheme.surface)
         }
     }

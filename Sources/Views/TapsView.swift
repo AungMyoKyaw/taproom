@@ -3,6 +3,7 @@ import SwiftUI
 struct TapsView: View {
     @Environment(AppState.self) private var appState
     @State private var newTapName: String = ""
+    @State private var tapToRemove: BrewTapInfo?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,22 +46,35 @@ struct TapsView: View {
                             Spacer()
                             if !tap.official {
                                 Button("Untap", role: .destructive) {
-                                    appState.removeTap(tap.name)
+                                    tapToRemove = tap
                                 }
                                 .buttonStyle(.bordered)
                             }
                         }
-                        .padding(14)
-                        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(TaproomTheme.border, lineWidth: 1)
-                        )
+                        .taproomCard()
                     }
                 }
                 .padding(16)
             }
         }
         .background(TaproomTheme.surface)
+        .confirmationDialog(
+            "Untap \(tapToRemove?.name ?? "")?",
+            isPresented: Binding(
+                get: { tapToRemove != nil },
+                set: { if !$0 { tapToRemove = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let tap = tapToRemove {
+                Button("Untap \(tap.name)", role: .destructive) {
+                    appState.removeTap(tap.name)
+                    tapToRemove = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { tapToRemove = nil }
+        } message: {
+            Text("Removes the tap repository from Homebrew.")
+        }
     }
 }
