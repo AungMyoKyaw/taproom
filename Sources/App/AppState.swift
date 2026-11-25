@@ -103,6 +103,7 @@ final class AppState {
     private let userDefaults: UserDefaults
 
     private var refreshTask: Task<Void, Never>?
+    private var diskSizeTask: Task<Void, Never>?
     private var backgroundTimerTask: Task<Void, Never>?
 
     init(
@@ -215,10 +216,12 @@ final class AppState {
             var failures: [String] = []
 
             if info.exitCode == 0 {
-                self.installedPackages = try BrewOutputParser.parseInstalledInfo(info.stdout)
+                let parsed = try BrewOutputParser.parseInstalledInfo(info.stdout)
+                self.installedPackages = parsed
                 if selectedPackageID == nil {
-                    selectedPackageID = installedPackages.first?.id
+                    selectedPackageID = parsed.first?.id
                 }
+                scheduleDiskSizeComputation(for: parsed)
             } else {
                 failures.append(Self.formatCommandFailure("brew info", output: info))
             }
@@ -377,19 +380,55 @@ final class AppState {
 
     // MARK: - Helpers
 
+    private func scheduleDiskSizeComputation(for packages: [BrewPackage]) {
+        diskSizeTask?.cancel()
+        let prefix = self.prefixPath
+        let targets: [(id: String, path: String)] = packages.map { pkg in
+            let sub = pkg.kind == .formula ? "Cellar" : "Caskroom"
+            let path = "\(prefix)/\(sub)/\(pkg.name)/\(pkg.version)"
+            return (pkg.id, path)
+        }
+
+        diskSizeTask = Task.detached(priority: .utility) { [weak self] in
+            var computed: [String: (path: String, size: Int64)] = [:]
+            for item in targets {
+                if Task.isCancelled { return }
+                let url = URL(fileURLWithPath: item.path, isDirectory: true)
+                var isDir: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
+                    continue
+                }
+                let size = Self.directorySizeSync(at: url)
+                computed[item.id] = (item.path, size)
+            }
+            guard !Task.isCancelled, !computed.isEmpty else { return }
+            let results = computed
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                for idx in self.installedPackages.indices {
+                    let id = self.installedPackages[idx].id
+                    if let match = results[id] {
+                        self.installedPackages[idx].installedPath = match.path
+                        self.installedPackages[idx].diskSizeBytes = match.size
+                    }
+                }
+            }
+        }
+    }
+
     private func computeCacheSize() async -> Int64 {
         await Task.detached(priority: .utility) {
-            Self.directorySizeSync()
+            guard let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+                return 0
+            }
+            let brewCache = caches.appendingPathComponent("Homebrew", isDirectory: true)
+            return Self.directorySizeSync(at: brewCache)
         }.value
     }
 
-    nonisolated private static func directorySizeSync() -> Int64 {
-        guard let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            return 0
-        }
-        let brewCache = caches.appendingPathComponent("Homebrew", isDirectory: true)
+    nonisolated private static func directorySizeSync(at root: URL) -> Int64 {
         guard let enumerator = FileManager.default.enumerator(
-            at: brewCache,
+            at: root,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
             options: [.skipsHiddenFiles]
         ) else {

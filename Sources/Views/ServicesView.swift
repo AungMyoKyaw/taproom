@@ -53,12 +53,7 @@ struct ServicesView: View {
                                 .tint(TaproomTheme.accent)
                             }
                         }
-                        .padding(14)
-                        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(TaproomTheme.border, lineWidth: 1)
-                        )
+                        .taproomCard()
                     }
                 }
             }

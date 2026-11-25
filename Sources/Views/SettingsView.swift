@@ -15,6 +15,7 @@ struct SettingsView: View {
                     Text("Every 24 hours").tag(24)
                 }
                 Toggle("Notify when outdated packages are found", isOn: $state.notifyOnOutdated)
+                Toggle("Include auto-updating casks (--greedy)", isOn: $state.includeGreedyCasks)
             }
 
             Section("Homebrew Environment") {

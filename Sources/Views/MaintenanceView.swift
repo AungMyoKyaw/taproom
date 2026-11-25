@@ -2,6 +2,13 @@ import SwiftUI
 
 struct MaintenanceView: View {
     @Environment(AppState.self) private var appState
+    @State private var confirmAction: PendingMaintenance?
+
+    private enum PendingMaintenance: Identifiable {
+        case cleanCache
+        case autoremove
+        var id: Self { self }
+    }
 
     var body: some View {
         ScrollView {
@@ -30,7 +37,7 @@ struct MaintenanceView: View {
                         buttonTitle: "Clean Cache",
                         isPrimary: false
                     ) {
-                        appState.cleanCache()
+                        confirmAction = .cleanCache
                     }
 
                     MaintenanceCard(
@@ -52,13 +59,40 @@ struct MaintenanceView: View {
                         buttonTitle: "Run Autoremove",
                         isPrimary: false
                     ) {
-                        appState.autoremove()
+                        confirmAction = .autoremove
                     }
                 }
             }
             .padding(20)
         }
         .background(TaproomTheme.surface)
+        .confirmationDialog(
+            confirmAction == .cleanCache ? "Clean Homebrew Cache?" : "Run brew autoremove?",
+            isPresented: Binding(
+                get: { confirmAction != nil },
+                set: { if !$0 { confirmAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if confirmAction == .cleanCache {
+                Button("Clean Cache (\(appState.formattedCacheSize))", role: .destructive) {
+                    appState.cleanCache()
+                    confirmAction = nil
+                }
+            } else if confirmAction == .autoremove {
+                Button("Run Autoremove", role: .destructive) {
+                    appState.autoremove()
+                    confirmAction = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { confirmAction = nil }
+        } message: {
+            Text(
+                confirmAction == .cleanCache
+                    ? "Runs brew cleanup --prune=all to delete cached downloads and old formula versions."
+                    : "Uninstalls formula dependencies no longer required by any requested leaf package."
+            )
+        }
     }
 }
 
@@ -98,12 +132,7 @@ private struct MaintenanceCard: View {
                     .buttonStyle(.bordered)
             }
         }
-        .padding(20)
         .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
-        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(TaproomTheme.border, lineWidth: 1)
-        )
+        .taproomCard(cornerRadius: 12, padding: 20)
     }
 }

@@ -6,6 +6,7 @@ struct DiscoverView: View {
     @State private var kindFilter: PackageKind? = nil
     @State private var results: [CatalogEntry] = []
     @State private var elapsedMs: Double = 0
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +18,7 @@ struct DiscoverView: View {
                     Button("Sync Catalog Now") {
                         Task {
                             await appState.syncCatalog()
-                            runSearch()
+                            scheduleSearch()
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -29,12 +30,17 @@ struct DiscoverView: View {
                 ScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(results) { entry in
+                            let installed = appState.installedIDs.contains(entry.id)
                             DiscoverRow(
                                 entry: entry,
-                                isInstalled: appState.installedIDs.contains(entry.id)
-                            ) {
-                                appState.installPackage(name: entry.name, kind: entry.kind)
-                            }
+                                isInstalled: installed,
+                                onInstall: {
+                                    appState.installPackage(name: entry.name, kind: entry.kind)
+                                },
+                                onInspectInstalled: {
+                                    appState.selectPackage(named: entry.name)
+                                }
+                            )
                         }
                     }
                     .padding(16)
@@ -42,10 +48,10 @@ struct DiscoverView: View {
                 .background(TaproomTheme.surface)
             }
         }
-        .onAppear { runSearch() }
-        .onChange(of: query) { _, _ in runSearch() }
-        .onChange(of: kindFilter) { _, _ in runSearch() }
-        .onChange(of: appState.catalogCount) { _, _ in runSearch() }
+        .onAppear { scheduleSearch(immediate: true) }
+        .onChange(of: query) { _, _ in scheduleSearch() }
+        .onChange(of: kindFilter) { _, _ in scheduleSearch(immediate: true) }
+        .onChange(of: appState.catalogCount) { _, _ in scheduleSearch(immediate: true) }
     }
 
     private var searchHeader: some View {
@@ -100,11 +106,23 @@ struct DiscoverView: View {
         .buttonStyle(.plain)
     }
 
-    private func runSearch() {
+    private func scheduleSearch(immediate: Bool = false) {
+        searchTask?.cancel()
         guard let catalog = appState.catalog else { return }
-        if let res = try? catalog.search(query: query, kind: kindFilter, limit: 80) {
-            self.results = res.entries
-            self.elapsedMs = res.elapsedMs
+        let currentQuery = query
+        let currentKind = kindFilter
+
+        searchTask = Task {
+            if !immediate {
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            guard !Task.isCancelled else { return }
+            let result = await Task.detached(priority: .userInitiated) {
+                try? catalog.search(query: currentQuery, kind: currentKind, limit: 80)
+            }.value
+            guard !Task.isCancelled, let result else { return }
+            self.results = result.entries
+            self.elapsedMs = result.elapsedMs
         }
     }
 }
@@ -113,6 +131,7 @@ private struct DiscoverRow: View {
     let entry: CatalogEntry
     let isInstalled: Bool
     let onInstall: () -> Void
+    let onInspectInstalled: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
@@ -124,6 +143,14 @@ private struct DiscoverRow: View {
                     Text("\(entry.version) · \(entry.tap)")
                         .font(TaproomTheme.mono(11))
                         .foregroundStyle(.secondary)
+                    if let url = URL(string: entry.homepage), !entry.homepage.isEmpty {
+                        Link(destination: url) {
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        .help(entry.homepage)
+                    }
                 }
                 if !entry.description.isEmpty {
                     Text(entry.description)
@@ -134,23 +161,22 @@ private struct DiscoverRow: View {
             }
             Spacer()
             if isInstalled {
-                Label("Installed", systemImage: "checkmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(TaproomTheme.statusCurrent)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                Button(action: onInspectInstalled) {
+                    Label("Installed", systemImage: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(TaproomTheme.statusCurrent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .help("Inspect installed package")
             } else {
                 Button("Install", action: onInstall)
                     .buttonStyle(.borderedProminent)
                     .tint(TaproomTheme.accent)
             }
         }
-        .padding(14)
-        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(TaproomTheme.border, lineWidth: 1)
-        )
+        .taproomCard()
     }
 }
