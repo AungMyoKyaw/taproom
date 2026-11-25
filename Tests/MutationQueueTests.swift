@@ -16,6 +16,7 @@ private final class MockBrewRunner: BrewExecutable, @unchecked Sendable {
         lock.withLock { _executedArgs }
     }
     var exitCodeToReturn: Int32 = 0
+    var outputLineToEmit: String?
 
     func run(args: [String]) async throws -> BrewCommandOutput {
         BrewCommandOutput(stdout: "", stderr: "", exitCode: 0)
@@ -25,8 +26,9 @@ private final class MockBrewRunner: BrewExecutable, @unchecked Sendable {
         lock.withLock { _executedArgs.append(args) }
         let handle = MockRunningHandle()
         let code = exitCodeToReturn
+        let extraLine = outputLineToEmit
         let task = Task<Int32, Error> {
-            onLine("running \(args.joined(separator: " "))")
+            onLine(extraLine ?? "running \(args.joined(separator: " "))")
             try? await Task.sleep(for: .milliseconds(30))
             return handle.cancelled ? 130 : code
         }
@@ -77,5 +79,22 @@ struct MutationQueueTests {
         #expect(mock.executedArgs == [["install", "a"]])
         #expect(queue.jobs.first { $0.id == j1 }?.state == .succeeded)
         #expect(queue.jobs.first { $0.id == j2 }?.state == .cancelled)
+    }
+
+    @Test("Marks non-zero exit as failed and detects cancelled sudo auth")
+    func failureAndAuthCancellation() async throws {
+        let mock = MockBrewRunner()
+        mock.exitCodeToReturn = 1
+        mock.outputLineToEmit = "sudo: a password is required"
+        let queue = MutationQueue(runner: mock)
+
+        let jobID = queue.enqueue(title: "Install cask", args: ["install", "--cask", "docker"])
+
+        for _ in 0..<50 {
+            if queue.jobs.first(where: { $0.id == jobID })?.state.isTerminal == true { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        #expect(queue.jobs.first { $0.id == jobID }?.state == .failed("Authentication cancelled"))
     }
 }
