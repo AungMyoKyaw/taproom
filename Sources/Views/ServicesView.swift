@@ -49,8 +49,7 @@ struct ServicesView: View {
                                 Button("Start") {
                                     appState.serviceAction(service, action: "start")
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(TaproomTheme.accent)
+                                .buttonStyle(TaproomPrimaryButtonStyle())
                             }
                         }
                         .taproomCard()

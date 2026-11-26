@@ -89,8 +89,7 @@ struct OutdatedView: View {
             Button("Upgrade All (\(appState.outdatedPackages.count))") {
                 appState.upgradeAll()
             }
-            .buttonStyle(.borderedProminent)
-            .tint(TaproomTheme.accent)
+            .buttonStyle(TaproomPrimaryButtonStyle())
             .disabled(appState.outdatedPackages.isEmpty)
         }
         .padding(.horizontal, 16)
@@ -106,6 +105,7 @@ struct OutdatedView: View {
                     .frame(width: 8, height: 8)
                 Text("Live Output · \(job.title)")
                     .font(TaproomTheme.mono(12, weight: .semibold))
+                JobElapsedTimerView(job: job)
                 Spacer()
                 if job.state == .running || job.state == .queued {
                     Button("Cancel Job", role: .destructive) {

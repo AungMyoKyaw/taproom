@@ -52,13 +52,58 @@ enum TaproomTheme {
     static let caskBadgeBg = Color.purple.opacity(0.14)
     static let caskBadgeFg = Color.purple
 
+    enum Radius {
+        static let xs: CGFloat = 4
+        static let sm: CGFloat = 6
+        static let md: CGFloat = 10
+        static let lg: CGFloat = 14
+        static let pill: CGFloat = 999
+    }
+
+    static let titleLg = Font.system(size: 20, weight: .semibold)
+    static let bodyMd = Font.system(size: 13, weight: .regular)
+    static let labelSm = Font.system(size: 11, weight: .semibold)
+    static let monoMd = Font.system(size: 12, weight: .medium, design: .monospaced).monospacedDigit()
+    static let monoSm = Font.system(size: 11, weight: .regular, design: .monospaced).monospacedDigit()
+
     static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+        .system(size: size, weight: weight, design: .monospaced).monospacedDigit()
+    }
+}
+
+struct TaproomPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(TaproomTheme.onAccent)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                TaproomTheme.accent.opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1.0) : 0.4),
+                in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm)
+            )
+    }
+}
+
+struct JobElapsedTimerView: View {
+    let job: MutationJob
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let start = job.startedAt ?? job.createdAt
+            let end = job.finishedAt ?? context.date
+            let seconds = max(0, Int(end.timeIntervalSince(start)))
+            Text(String(format: "%02d:%02d", seconds / 60, seconds % 60))
+                .font(TaproomTheme.monoSm)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
 extension View {
-    func taproomCard(cornerRadius: CGFloat = 10, padding: CGFloat = 14) -> some View {
+    func taproomCard(cornerRadius: CGFloat = TaproomTheme.Radius.md, padding: CGFloat = 14) -> some View {
         self
             .padding(padding)
             .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: cornerRadius))

@@ -14,37 +14,85 @@ struct DiscoverView: View {
             Divider()
             if appState.catalogCount == 0 {
                 VStack(spacing: 12) {
-                    ProgressView("Indexing Homebrew Formulae & Casks into SQLite FTS5…")
+                    if appState.isSyncingCatalog {
+                        ProgressView("Indexing Homebrew Formulae & Casks into SQLite FTS5…")
+                    } else {
+                        Text("Catalog not indexed yet")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
                     Button("Sync Catalog Now") {
                         Task {
                             await appState.syncCatalog()
                             scheduleSearch()
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(TaproomTheme.accent)
+                    .buttonStyle(TaproomPrimaryButtonStyle())
+                    .disabled(appState.isSyncingCatalog)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(TaproomTheme.surface)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(results) { entry in
-                            let installed = appState.installedIDs.contains(entry.id)
-                            DiscoverRow(
-                                entry: entry,
-                                isInstalled: installed,
-                                onInstall: {
-                                    appState.installPackage(name: entry.name, kind: entry.kind)
-                                },
-                                onInspectInstalled: {
-                                    appState.selectPackage(named: entry.name)
-                                }
-                            )
+                Table(results) {
+                    TableColumn("Package") { entry in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(entry.name)
+                                .font(.system(size: 13, weight: .medium))
+                            if !entry.description.isEmpty {
+                                Text(entry.description)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .width(min: 220, ideal: 340)
+
+                    TableColumn("Kind") { entry in
+                        KindBadge(kind: entry.kind)
+                    }
+                    .width(78)
+
+                    TableColumn("Version") { entry in
+                        Text(entry.version)
+                            .font(TaproomTheme.monoMd)
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(min: 95, ideal: 130)
+
+                    TableColumn("Tap") { entry in
+                        Text(entry.tap)
+                            .font(TaproomTheme.monoSm)
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(min: 110, ideal: 150)
+
+                    TableColumn("Action") { entry in
+                        let installed = appState.installedIDs.contains(entry.id)
+                        if installed {
+                            Button {
+                                appState.selectPackage(named: entry.name)
+                            } label: {
+                                Label("Installed", systemImage: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(TaproomTheme.statusCurrent)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Inspect installed package")
+                        } else {
+                            Button("Install") {
+                                appState.installPackage(name: entry.name, kind: entry.kind)
+                            }
+                            .buttonStyle(TaproomPrimaryButtonStyle())
                         }
                     }
-                    .padding(16)
+                    .width(96)
                 }
+                .scrollContentBackground(.hidden)
                 .background(TaproomTheme.surface)
             }
         }
@@ -124,59 +172,5 @@ struct DiscoverView: View {
             self.results = result.entries
             self.elapsedMs = result.elapsedMs
         }
-    }
-}
-
-private struct DiscoverRow: View {
-    let entry: CatalogEntry
-    let isInstalled: Bool
-    let onInstall: () -> Void
-    let onInspectInstalled: () -> Void
-
-    var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(entry.name)
-                        .font(.system(size: 14, weight: .bold))
-                    KindBadge(kind: entry.kind)
-                    Text("\(entry.version) · \(entry.tap)")
-                        .font(TaproomTheme.mono(11))
-                        .foregroundStyle(.secondary)
-                    if let url = URL(string: entry.homepage), !entry.homepage.isEmpty {
-                        Link(destination: url) {
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                        .help(entry.homepage)
-                    }
-                }
-                if !entry.description.isEmpty {
-                    Text(entry.description)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            Spacer()
-            if isInstalled {
-                Button(action: onInspectInstalled) {
-                    Label("Installed", systemImage: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(TaproomTheme.statusCurrent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
-                }
-                .buttonStyle(.plain)
-                .help("Inspect installed package")
-            } else {
-                Button("Install", action: onInstall)
-                    .buttonStyle(.borderedProminent)
-                    .tint(TaproomTheme.accent)
-            }
-        }
-        .taproomCard()
     }
 }

@@ -1,4 +1,4 @@
-.PHONY: all dev build run test generate clean help
+.PHONY: all dev build release notarize run test generate clean help
 
 DERIVED_DATA = .build
 SCHEME = Taproom
@@ -15,6 +15,8 @@ help:
 	@echo "  make build     - Generate Xcode project & build Taproom.app"
 	@echo "  make run       - Launch Taproom.app in the background via 'open'"
 	@echo "  make test      - Run unit tests with Swift Testing"
+	@echo "  make release   - Build Release signed with Developer ID"
+	@echo "  make notarize  - Build Release, notarize, staple, and verify Gatekeeper"
 	@echo "  make generate  - Regenerate Taproom.xcodeproj via xcodegen"
 	@echo "  make clean     - Remove build artifacts and derived data"
 
@@ -51,3 +53,19 @@ test: $(PROJECT)
 
 clean:
 	rm -rf $(DERIVED_DATA)
+
+release: $(PROJECT)
+	@mkdir -p $(DERIVED_DATA)
+	xcodebuild -project $(PROJECT) \
+		-scheme $(SCHEME) \
+		-configuration Release \
+		-derivedDataPath $(DERIVED_DATA) \
+		build
+
+notarize: release
+	@rm -f $(DERIVED_DATA)/Taproom-notarize.zip
+	ditto -c -k --keepParent "$(DERIVED_DATA)/Build/Products/Release/Taproom.app" "$(DERIVED_DATA)/Taproom-notarize.zip"
+	xcrun notarytool submit "$(DERIVED_DATA)/Taproom-notarize.zip" --keychain-profile "taproom-notary" --wait
+	xcrun stapler staple "$(DERIVED_DATA)/Build/Products/Release/Taproom.app"
+	spctl --assess --verbose=4 --type exec "$(DERIVED_DATA)/Build/Products/Release/Taproom.app"
+	@rm -f $(DERIVED_DATA)/Taproom-notarize.zip

@@ -27,8 +27,7 @@ struct MenuBarPopoverView: View {
                 Text(appState.outdatedPackages.isEmpty ? "All Packages Up to Date" : "Upgrade All (\(appState.outdatedPackages.count))")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(TaproomTheme.accent)
+            .buttonStyle(TaproomPrimaryButtonStyle())
             .disabled(appState.outdatedPackages.isEmpty)
 
             if !appState.services.isEmpty {

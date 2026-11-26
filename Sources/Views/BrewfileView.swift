@@ -34,8 +34,7 @@ struct BrewfileView: View {
                 Button("Export to ~/Brewfile") {
                     exportHomeBrewfile(content)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(TaproomTheme.accent)
+                .buttonStyle(TaproomPrimaryButtonStyle())
             }
             .padding(16)
             Divider()

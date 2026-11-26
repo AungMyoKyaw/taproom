@@ -125,14 +125,13 @@ private struct MaintenanceCard: View {
             Spacer(minLength: 8)
             if isPrimary {
                 Button(buttonTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(TaproomTheme.accent)
+                    .buttonStyle(TaproomPrimaryButtonStyle())
             } else {
                 Button(buttonTitle, action: action)
                     .buttonStyle(.bordered)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
-        .taproomCard(cornerRadius: 12, padding: 20)
+        .taproomCard(cornerRadius: TaproomTheme.Radius.md, padding: 20)
     }
 }

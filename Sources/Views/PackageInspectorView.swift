@@ -101,8 +101,7 @@ struct PackageInspectorView: View {
                     Label("Upgrade", systemImage: "arrow.up.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(TaproomTheme.accent)
+                .buttonStyle(TaproomPrimaryButtonStyle())
             } else if pkg.kind == .formula {
                 Button {
                     appState.togglePin(pkg)

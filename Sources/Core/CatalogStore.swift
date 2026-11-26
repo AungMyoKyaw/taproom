@@ -9,7 +9,7 @@ struct CatalogSearchResult: Sendable {
 final class CatalogStore: Sendable {
     private let dbQueue: DatabaseQueue
 
-    init(inMemory: Bool = false) throws {
+    init(inMemory: Bool = false, databasePath: String? = nil) throws {
         var config = Configuration()
         config.prepareDatabase { db in
             if !inMemory {
@@ -19,10 +19,15 @@ final class CatalogStore: Sendable {
         if inMemory {
             self.dbQueue = try DatabaseQueue(configuration: config)
         } else {
-            let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            let dir = support.appendingPathComponent("Taproom", isDirectory: true)
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let dbPath = dir.appendingPathComponent("catalog.sqlite").path
+            let dbPath: String
+            if let databasePath {
+                dbPath = databasePath
+            } else {
+                let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                let dir = support.appendingPathComponent("Taproom", isDirectory: true)
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                dbPath = dir.appendingPathComponent("catalog.sqlite").path
+            }
             self.dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
         }
         try Self.migrate(dbQueue)
@@ -65,6 +70,28 @@ final class CatalogStore: Sendable {
                     INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
                     VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
                 END;
+                """)
+        }
+        migrator.registerMigration("v2_fix_fts_triggers") { db in
+            try db.execute(sql: """
+                DROP TRIGGER IF EXISTS catalog_ai;
+                DROP TRIGGER IF EXISTS catalog_ad;
+                DROP TRIGGER IF EXISTS catalog_au;
+                CREATE TRIGGER catalog_ai AFTER INSERT ON catalog_entries BEGIN
+                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
+                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
+                END;
+                CREATE TRIGGER catalog_ad AFTER DELETE ON catalog_entries BEGIN
+                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
+                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
+                END;
+                CREATE TRIGGER catalog_au AFTER UPDATE ON catalog_entries BEGIN
+                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
+                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
+                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
+                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
+                END;
+                INSERT INTO catalog_fts(catalog_fts) VALUES('rebuild');
                 """)
         }
         try migrator.migrate(dbQueue)

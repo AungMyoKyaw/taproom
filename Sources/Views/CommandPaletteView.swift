@@ -69,7 +69,7 @@ struct CommandPaletteView: View {
                                                 .foregroundStyle(.secondary)
                                                 .padding(.horizontal, 8)
                                                 .padding(.vertical, 3)
-                                                .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 5))
+                                                .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.xs))
                                         }
                                     }
                                     .padding(.horizontal, 12)
@@ -93,9 +93,9 @@ struct CommandPaletteView: View {
                 }
             }
             .frame(width: 600)
-            .glassEffect(.regular, in: .rect(cornerRadius: 16))
+            .glassEffect(.regular, in: .rect(cornerRadius: TaproomTheme.Radius.lg))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: TaproomTheme.Radius.lg)
                     .stroke(TaproomTheme.border, lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.35), radius: 24, y: 12)

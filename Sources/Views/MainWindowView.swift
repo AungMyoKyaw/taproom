@@ -47,7 +47,7 @@ struct MainWindowView: View {
                     JobQueuePill(job: active, queuedCount: appState.queue.queuedCount) {
                         appState.logSheetPresented = true
                     }
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
                 }
             }
 
@@ -183,7 +183,7 @@ private struct JobQueuePill: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: TaproomTheme.Radius.lg))
         }
     }
 }
@@ -195,9 +195,12 @@ private struct LiveLogSheetView: View {
     var body: some View {
         VStack(spacing: 0) {
             let job = appState.queue.activeJob ?? appState.queue.jobs.last
-            HStack {
+            HStack(spacing: 10) {
                 Text(job?.title ?? "Job Output")
                     .font(TaproomTheme.mono(13, weight: .semibold))
+                if let job {
+                    JobElapsedTimerView(job: job)
+                }
                 Spacer()
                 if let job, job.state == .running || job.state == .queued {
                     Button("Cancel Job", role: .destructive) {
@@ -206,8 +209,7 @@ private struct LiveLogSheetView: View {
                     .buttonStyle(.bordered)
                 }
                 Button("Close") { dismiss() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(TaproomTheme.accent)
+                    .buttonStyle(TaproomPrimaryButtonStyle())
             }
             .padding(16)
             Divider()

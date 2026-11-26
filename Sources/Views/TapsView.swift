@@ -15,8 +15,7 @@ struct TapsView: View {
                     appState.addTap(newTapName)
                     newTapName = ""
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(TaproomTheme.accent)
+                .buttonStyle(TaproomPrimaryButtonStyle())
                 .disabled(newTapName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(16)
