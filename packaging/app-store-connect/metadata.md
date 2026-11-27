@@ -67,7 +67,13 @@ Built for engineers and power users who want zero-latency package inspection, de
 Taproom is a local macOS GUI for Homebrew. No account or login is required. All data stays on-device; network requests only fetch public Homebrew catalog metadata from formulae.brew.sh and run user-initiated brew commands.
 ```
 
-## Screenshots
+## Screenshots (`2880x1800` Retina 16:10)
 
-- Live capture (`packaging/app-store-connect/screenshots/01-taproom-live.png`)
+- `packaging/app-store-connect/screenshots/01-taproom-live.png` — Installed packages + inspector
+- `packaging/app-store-connect/screenshots/02-command-palette.png` — `⌘K` Command Palette
+- `packaging/app-store-connect/screenshots/03-adopt-apps.png` — Adopt Apps & Rosetta architecture audit
+- `packaging/app-store-connect/screenshots/04-discover.png` — FTS5 Discover catalog
+- `packaging/app-store-connect/screenshots/05-maintenance.png` — Maintenance diagnostics & operation history
+- `packaging/app-store-connect/screenshots/06-services.png` — Background `brew services`
+- `packaging/app-store-connect/screenshots/07-brewfile.png` — Live `Brewfile` export/import
 - Additional dark/light renders (`design/renders/01-installed-dark.png` through `05-palette-menubar-light.png`)
