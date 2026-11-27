@@ -119,4 +119,47 @@ struct AppStateTests {
             ["uninstall", "jq"]
         ])
     }
+
+    @Test("Enqueues adopt and missing commands and records operation history")
+    func adoptMissingAndHistory() async throws {
+        let (defaults, suite) = makeIsolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let runner = StubBrewRunner()
+        let state = AppState(runner: runner, userDefaults: defaults, catalog: try CatalogStore(inMemory: true))
+        state.customBrewPath = "/opt/custom/bin/brew"
+        state.httpProxy = "http://127.0.0.1:8080"
+
+        let app = DiscoveredApp(
+            id: "/Applications/Raycast.app",
+            name: "Raycast",
+            bundleIdentifier: "com.raycast.macos",
+            version: "1.80.0",
+            path: "/Applications/Raycast.app",
+            architecture: .arm64,
+            matchedCaskToken: "raycast",
+            isManagedByBrew: false
+        )
+        state.adoptApp(app)
+        state.runMissingCheck()
+
+        for _ in 0..<40 {
+            if !state.queue.isProcessing && state.queue.jobs.allSatisfy({ $0.state.isTerminal }) { break }
+            try await Task.sleep(for: .milliseconds(15))
+        }
+
+        #expect(runner.recordedStreamArgs == [
+            ["install", "--cask", "--adopt", "raycast"],
+            ["missing"]
+        ])
+        #expect(state.operationHistory.count == 2)
+
+        let reloaded = AppState(runner: runner, userDefaults: defaults, catalog: try CatalogStore(inMemory: true))
+        #expect(reloaded.customBrewPath == "/opt/custom/bin/brew")
+        #expect(reloaded.httpProxy == "http://127.0.0.1:8080")
+        #expect(reloaded.operationHistory.count == 2)
+
+        reloaded.clearOperationHistory()
+        #expect(reloaded.operationHistory.isEmpty)
+    }
 }
