@@ -92,6 +92,7 @@ jobs:
       - name: Archive Universal Mac App Store Build
         run: |
           rm -rf .build/Taproom.xcarchive
+          cp Resources/Taproom-AppStore.entitlements Resources/Taproom.entitlements
           xcodebuild archive \
             -project Taproom.xcodeproj \
             -scheme Taproom \
@@ -100,7 +101,6 @@ jobs:
             -archivePath .build/Taproom.xcarchive \
             ARCHS="arm64 x86_64" \
             ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGN_ENTITLEMENTS=Resources/Taproom-AppStore.entitlements \
             OTHER_SWIFT_FLAGS='$(inherited) -DMAC_APP_STORE' \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}" \
