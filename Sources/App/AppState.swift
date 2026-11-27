@@ -7,6 +7,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
     case installed
     case outdated
     case discover
+    case adopt
     case services
     case taps
     case maintenance
@@ -19,6 +20,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .installed: "Installed"
         case .outdated: "Outdated"
         case .discover: "Discover"
+        case .adopt: "Adopt Apps"
         case .services: "Services"
         case .taps: "Taps"
         case .maintenance: "Maintenance"
@@ -31,6 +33,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .installed: "shippingbox"
         case .outdated: "arrow.triangle.2.circlepath"
         case .discover: "sparkle.magnifyingglass"
+        case .adopt: "square.and.arrow.down.on.square"
         case .services: "gearshape.2"
         case .taps: "spigot"
         case .maintenance: "stethoscope"
@@ -64,11 +67,14 @@ final class AppState {
     private(set) var outdatedPackages: [OutdatedPackage] = []
     private(set) var services: [BrewServiceInfo] = []
     private(set) var taps: [BrewTapInfo] = []
+    private(set) var discoveredApps: [DiscoveredApp] = []
+    private(set) var operationHistory: [OperationRecord] = []
     private(set) var brewVersion: String = "—"
     private(set) var cacheSizeBytes: Int64 = 0
     private(set) var catalogCount: Int = 0
     private(set) var isRefreshing: Bool = false
     private(set) var isSyncingCatalog: Bool = false
+    private(set) var isScanningApps: Bool = false
     private(set) var lastCheckedAt: Date?
     private(set) var lastError: String?
 
@@ -77,6 +83,8 @@ final class AppState {
         static let checkIntervalHours = "taproom.checkIntervalHours"
         static let notifyOnOutdated = "taproom.notifyOnOutdated"
         static let includeGreedyCasks = "taproom.includeGreedyCasks"
+        static let customBrewPath = "taproom.customBrewPath"
+        static let httpProxy = "taproom.httpProxy"
     }
 
     var checkIntervalHours: Int = 6 {
@@ -95,11 +103,22 @@ final class AppState {
             userDefaults.set(includeGreedyCasks, forKey: DefaultsKey.includeGreedyCasks)
         }
     }
+    var customBrewPath: String = "" {
+        didSet {
+            userDefaults.set(customBrewPath, forKey: DefaultsKey.customBrewPath)
+        }
+    }
+    var httpProxy: String = "" {
+        didSet {
+            userDefaults.set(httpProxy, forKey: DefaultsKey.httpProxy)
+        }
+    }
 
     // Dependencies
     let runner: BrewExecutable
     let queue: MutationQueue
     let catalog: CatalogStore?
+    private let historyStore: OperationHistoryStore
     private let userDefaults: UserDefaults
 
     private var pendingRefresh: Bool = false
@@ -113,6 +132,8 @@ final class AppState {
     ) {
         self.runner = runner
         self.userDefaults = userDefaults
+        self.historyStore = OperationHistoryStore(userDefaults: userDefaults)
+        self.operationHistory = historyStore.records
         self.queue = MutationQueue(runner: runner)
         self.catalog = catalog ?? (try? CatalogStore(inMemory: false))
 
@@ -125,7 +146,18 @@ final class AppState {
         if userDefaults.object(forKey: DefaultsKey.includeGreedyCasks) != nil {
             self.includeGreedyCasks = userDefaults.bool(forKey: DefaultsKey.includeGreedyCasks)
         }
+        if let savedBrewPath = userDefaults.string(forKey: DefaultsKey.customBrewPath) {
+            self.customBrewPath = savedBrewPath
+        }
+        if let savedProxy = userDefaults.string(forKey: DefaultsKey.httpProxy) {
+            self.httpProxy = savedProxy
+        }
 
+        self.queue.setOnJobFinish { [weak self] job in
+            guard let self else { return }
+            self.historyStore.append(job: job)
+            self.operationHistory = self.historyStore.records
+        }
         self.queue.setOnDrain { [weak self] in
             await self?.refreshAll()
         }
@@ -172,8 +204,38 @@ final class AppState {
         ByteCountFormatter.string(fromByteCount: cacheSizeBytes, countStyle: .file)
     }
 
+    var adoptableAppCount: Int {
+        discoveredApps.filter(\.isAdoptable).count
+    }
+
+    var rosettaAppCount: Int {
+        discoveredApps.filter(\.isRosetta).count
+    }
+
     func dismissError() {
         lastError = nil
+    }
+
+    func scanLocalApplications(directories: [URL] = AppScanner.defaultDirectories()) async {
+        guard !isScanningApps else { return }
+        isScanningApps = true
+        let installedCasks = Set(installedPackages.filter { $0.kind == .cask }.map(\.name))
+        let lookup = (try? catalog?.caskTokenLookup()) ?? [:]
+        let scanned = await Task.detached(priority: .utility) {
+            AppScanner.scan(directories: directories, installedCaskNames: installedCasks, caskLookup: lookup)
+        }.value
+        self.discoveredApps = scanned
+        isScanningApps = false
+    }
+
+    func adoptApp(_ app: DiscoveredApp) {
+        guard let token = app.matchedCaskToken else { return }
+        queue.enqueue(title: "Adopt \(app.name) (\(token))", args: ["install", "--cask", "--adopt", token])
+    }
+
+    func clearOperationHistory() {
+        historyStore.clear()
+        operationHistory = []
     }
 
     func dependents(of formulaName: String) -> [BrewPackage] {
@@ -352,6 +414,11 @@ final class AppState {
 
     func runDoctor() {
         queue.enqueue(title: "brew doctor", args: ["doctor"])
+        logSheetPresented = true
+    }
+
+    func runMissingCheck() {
+        queue.enqueue(title: "brew missing", args: ["missing"])
         logSheetPresented = true
     }
 

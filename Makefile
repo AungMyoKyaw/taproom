@@ -1,4 +1,4 @@
-.PHONY: all dev build release notarize run test generate clean help
+.PHONY: all dev build release dmg notarize run test generate clean help
 
 DERIVED_DATA = .build
 SCHEME = Taproom
@@ -16,7 +16,8 @@ help:
 	@echo "  make run       - Launch Taproom.app in the background via 'open'"
 	@echo "  make test      - Run unit tests with Swift Testing"
 	@echo "  make release   - Build Release signed with Developer ID"
-	@echo "  make notarize  - Build Release, notarize, staple, and verify Gatekeeper"
+	@echo "  make dmg       - Package Release Taproom.app into a compressed DMG"
+	@echo "  make notarize  - Build DMG, notarize, staple, and verify Gatekeeper"
 	@echo "  make generate  - Regenerate Taproom.xcodeproj via xcodegen"
 	@echo "  make clean     - Remove build artifacts and derived data"
 
@@ -62,10 +63,15 @@ release: $(PROJECT)
 		-derivedDataPath $(DERIVED_DATA) \
 		build
 
-notarize: release
-	@rm -f $(DERIVED_DATA)/Taproom-notarize.zip
-	ditto -c -k --keepParent "$(DERIVED_DATA)/Build/Products/Release/Taproom.app" "$(DERIVED_DATA)/Taproom-notarize.zip"
-	xcrun notarytool submit "$(DERIVED_DATA)/Taproom-notarize.zip" --keychain-profile "taproom-notary" --wait
-	xcrun stapler staple "$(DERIVED_DATA)/Build/Products/Release/Taproom.app"
-	spctl --assess --verbose=4 --type exec "$(DERIVED_DATA)/Build/Products/Release/Taproom.app"
-	@rm -f $(DERIVED_DATA)/Taproom-notarize.zip
+dmg: release
+	@rm -rf $(DERIVED_DATA)/dmg-staging $(DERIVED_DATA)/Taproom.dmg
+	@mkdir -p $(DERIVED_DATA)/dmg-staging
+	@cp -R "$(DERIVED_DATA)/Build/Products/Release/Taproom.app" "$(DERIVED_DATA)/dmg-staging/"
+	@ln -s /Applications "$(DERIVED_DATA)/dmg-staging/Applications"
+	hdiutil create -volname "Taproom" -srcfolder "$(DERIVED_DATA)/dmg-staging" -ov -format UDZO "$(DERIVED_DATA)/Taproom.dmg"
+	@rm -rf $(DERIVED_DATA)/dmg-staging
+
+notarize: dmg
+	xcrun notarytool submit "$(DERIVED_DATA)/Taproom.dmg" --keychain-profile "taproom-notary" --wait
+	xcrun stapler staple "$(DERIVED_DATA)/Taproom.dmg"
+	spctl --assess --verbose=4 --type open --context context:primary-signature "$(DERIVED_DATA)/Taproom.dmg"

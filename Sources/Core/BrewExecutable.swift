@@ -59,19 +59,41 @@ private final class ProcessHandle: BrewRunningHandle, @unchecked Sendable {
     }
 }
 
+struct BrewEnvironmentOverrides: Sendable {
+    var customBrewPath: String
+    var httpProxy: String
+}
+
 final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
-    let brewPath: String
-    let prefixPath: String
+    private let defaultBrewPath: String
     private let askpassPath: String?
     private let envLock = NSLock()
     private var cachedShellEnv: [String: String]?
+    private let overridesProvider: @Sendable () -> BrewEnvironmentOverrides
 
-    init() {
+    init(overridesProvider: @escaping @Sendable () -> BrewEnvironmentOverrides = {
+        BrewEnvironmentOverrides(
+            customBrewPath: UserDefaults.standard.string(forKey: "taproom.customBrewPath") ?? "",
+            httpProxy: UserDefaults.standard.string(forKey: "taproom.httpProxy") ?? ""
+        )
+    }) {
         let candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
-        let found = candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? "/opt/homebrew/bin/brew"
-        self.brewPath = found
-        self.prefixPath = found.hasPrefix("/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+        self.defaultBrewPath = candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? "/opt/homebrew/bin/brew"
         self.askpassPath = AskpassHelper.ensureScriptPath()
+        self.overridesProvider = overridesProvider
+    }
+
+    var brewPath: String {
+        let custom = overridesProvider().customBrewPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        return custom.isEmpty ? defaultBrewPath : custom
+    }
+
+    var prefixPath: String {
+        let current = brewPath
+        if current.hasSuffix("/bin/brew") {
+            return String(current.dropLast("/bin/brew".count))
+        }
+        return current.hasPrefix("/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
     }
 
     private func loadLoginShellEnv() -> [String: String] {
@@ -145,6 +167,13 @@ final class LiveBrewRunner: BrewExecutable, @unchecked Sendable {
         env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
         env["HOMEBREW_NO_ENV_HINTS"] = "1"
         env["HOMEBREW_NO_COLOR"] = "1"
+        let proxy = overridesProvider().httpProxy.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !proxy.isEmpty {
+            env["HTTP_PROXY"] = proxy
+            env["HTTPS_PROXY"] = proxy
+            env["http_proxy"] = proxy
+            env["https_proxy"] = proxy
+        }
         if let askpassPath {
             env["SUDO_ASKPASS"] = askpassPath
         }

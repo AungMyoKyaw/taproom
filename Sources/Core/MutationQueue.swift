@@ -37,14 +37,24 @@ final class MutationQueue {
     private var activeHandle: BrewRunningHandle?
     private var activeJobID: UUID?
     private var onDrain: (@MainActor @Sendable () async -> Void)?
+    private var onJobFinish: (@MainActor @Sendable (MutationJob) -> Void)?
 
-    init(runner: BrewExecutable, onDrain: (@MainActor @Sendable () async -> Void)? = nil) {
+    init(
+        runner: BrewExecutable,
+        onDrain: (@MainActor @Sendable () async -> Void)? = nil,
+        onJobFinish: (@MainActor @Sendable (MutationJob) -> Void)? = nil
+    ) {
         self.runner = runner
         self.onDrain = onDrain
+        self.onJobFinish = onJobFinish
     }
 
     func setOnDrain(_ handler: @escaping @MainActor @Sendable () async -> Void) {
         self.onDrain = handler
+    }
+
+    func setOnJobFinish(_ handler: @escaping @MainActor @Sendable (MutationJob) -> Void) {
+        self.onJobFinish = handler
     }
 
     var activeJob: MutationJob? {
@@ -143,6 +153,10 @@ final class MutationQueue {
 
         activeJobID = nil
         isProcessing = false
+
+        if let finished = jobs.first(where: { $0.id == jobID }) {
+            onJobFinish?(finished)
+        }
 
         if jobs.contains(where: { $0.state == .queued }) {
             await processNext()

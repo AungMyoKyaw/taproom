@@ -71,6 +71,7 @@ struct MainWindowView: View {
                 sidebarRow(.discover, badge: nil)
             }
             Section("System") {
+                sidebarRow(.adopt, badge: appState.adoptableAppCount)
                 sidebarRow(.services, badge: appState.services.filter { $0.status.isRunning }.count)
                 sidebarRow(.taps, badge: appState.taps.count)
                 sidebarRow(.maintenance, badge: nil)
@@ -149,6 +150,7 @@ struct MainWindowView: View {
                 case .installed: InstalledPackagesView()
                 case .outdated: OutdatedView()
                 case .discover: DiscoverView()
+                case .adopt: AdoptAppsView()
                 case .services: ServicesView()
                 case .taps: TapsView()
                 case .maintenance: MaintenanceView()

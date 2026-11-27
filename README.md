@@ -20,9 +20,10 @@ Native macOS 26 (Tahoe) Homebrew cockpit built with SwiftUI, Liquid Glass naviga
 - **Outdated & greedy casks**: Upgrade individual packages or all outdated packages (`⌘U`), with an optional `--greedy` toggle for auto-updating casks.
 - **Cask zap & confirmations**: Destructive actions (`Uninstall`, `Uninstall & Zap`, `Untap`, `brew cleanup`, `brew autoremove`) prompt for confirmation.
 - **FTS5 discovery**: Local SQLite FTS5 BM25 search across `formulae.brew.sh` metadata (with offline cache-name fallback).
-- **Services, taps, maintenance, Brewfile**: Start/stop/restart `brew services`, manage taps, run `brew doctor`, export or import `Brewfile`s, and control updates from the menu bar extra.
+- **Adopt existing apps & Rosetta audit**: Scan `/Applications` and `~/Applications`, flag Intel (`x86_64`) apps running under Rosetta, and adopt unmanaged apps via `brew install --cask --adopt`.
+- **Services, taps, maintenance, Brewfile**: Start/stop/restart `brew services`, manage taps, run `brew doctor` and `brew missing`, inspect operation history, export or import `Brewfile`s, and control updates from the menu bar extra.
 - **Command palette**: `⌘K` fuzzy launcher with keyboard navigation across actions, views, services, and installed packages.
-- **Serial mutation queue**: FIFO `brew` runner with live ANSI-stripped log streaming (`⌘L`), cancellation, and `SUDO_ASKPASS` elevation.
+- **Serial mutation queue**: FIFO `brew` runner with live ANSI-stripped log streaming (`⌘L`), cancellation, custom `brew` binary/proxy overrides, and `SUDO_ASKPASS` elevation.
 
 ## Build and Run
 
@@ -38,6 +39,8 @@ Common targets:
 - `make run`: Build and open `.build/Build/Products/Debug/Taproom.app`.
 - `make dev`: Build and run the binary in the foreground.
 - `make test`: Run the Swift Testing suite.
+- `make dmg`: Build Release and package `Taproom.app` into `.build/Taproom.dmg`.
+- `make notarize`: Build DMG, notarize via `notarytool`, staple, and verify Gatekeeper.
 
 ## Architecture
 

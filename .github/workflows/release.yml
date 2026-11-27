@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: make generate
+      - name: Run tests
+        run: make test
+      - name: Build & Package DMG
+        run: |
+          mkdir -p .build/dmg-staging
+          xcodebuild -project Taproom.xcodeproj \
+            -scheme Taproom \
+            -configuration Release \
+            -derivedDataPath .build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_STYLE=Manual \
+            build
+          cp -R ".build/Build/Products/Release/Taproom.app" ".build/dmg-staging/"
+          ln -s /Applications ".build/dmg-staging/Applications"
+          hdiutil create -volname "Taproom" -srcfolder ".build/dmg-staging" -ov -format UDZO ".build/Taproom.dmg"
+      - name: Upload GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .build/Taproom.dmg

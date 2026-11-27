@@ -61,7 +61,20 @@ struct MaintenanceView: View {
                     ) {
                         confirmAction = .autoremove
                     }
+
+                    MaintenanceCard(
+                        title: "Missing Dependencies",
+                        badge: "Verify",
+                        badgeColor: TaproomTheme.statusCurrent,
+                        description: "Check installed formulae for missing runtime dependencies via brew missing.",
+                        buttonTitle: "Check Missing",
+                        isPrimary: false
+                    ) {
+                        appState.runMissingCheck()
+                    }
                 }
+
+                historySection
             }
             .padding(20)
         }
@@ -133,5 +146,65 @@ private struct MaintenanceCard: View {
         }
         .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
         .taproomCard(cornerRadius: TaproomTheme.Radius.md, padding: 20)
+    }
+}
+
+private extension MaintenanceView {
+    var historySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("OPERATION HISTORY")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if !appState.operationHistory.isEmpty {
+                    Button("Clear History") {
+                        appState.clearOperationHistory()
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 8)
+
+            if appState.operationHistory.isEmpty {
+                Text("No completed Homebrew operations recorded yet.")
+                    .font(TaproomTheme.monoSm)
+                    .foregroundStyle(.secondary)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .taproomCard(cornerRadius: TaproomTheme.Radius.md, padding: 0)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(appState.operationHistory.prefix(20)) { record in
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(record.succeeded ? TaproomTheme.statusCurrent : TaproomTheme.statusError)
+                                .frame(width: 7, height: 7)
+                            Text(record.title)
+                                .font(.system(size: 12, weight: .medium))
+                                .lineLimit(1)
+                            Spacer()
+                            Text(record.statusSummary)
+                                .font(TaproomTheme.mono(11))
+                                .foregroundStyle(record.succeeded ? .secondary : TaproomTheme.statusError)
+                            Text(String(format: "%.1fs", record.durationSeconds))
+                                .font(TaproomTheme.mono(10))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 48, alignment: .trailing)
+                            Text(record.finishedAt.formatted(.relative(presentation: .named)))
+                                .font(TaproomTheme.mono(10))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 90, alignment: .trailing)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        Divider()
+                    }
+                }
+                .taproomCard(cornerRadius: TaproomTheme.Radius.md, padding: 0)
+            }
+        }
     }
 }

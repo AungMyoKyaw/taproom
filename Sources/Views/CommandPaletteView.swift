@@ -159,6 +159,21 @@ struct CommandPaletteView: View {
                 shortcut: nil
             ) { appState.runDoctor() },
             PaletteCommand(
+                id: "action.missing",
+                title: "Check Missing Dependencies (brew missing)",
+                subtitle: "Maintenance · Verify formula dependencies",
+                shortcut: nil
+            ) { appState.runMissingCheck() },
+            PaletteCommand(
+                id: "action.adopt",
+                title: "Scan & Adopt /Applications into Homebrew",
+                subtitle: "Apps · Match local .app bundles to casks",
+                shortcut: nil
+            ) {
+                appState.selectedSection = .adopt
+                Task { await appState.scanLocalApplications() }
+            },
+            PaletteCommand(
                 id: "action.maintenance",
                 title: "Open Maintenance & Cache Cleanup (\(appState.formattedCacheSize))",
                 subtitle: "Maintenance · Clean cache or run autoremove",

@@ -94,6 +94,27 @@ final class CatalogStore: Sendable {
         }
     }
 
+    /// Maps normalized cask tokens (alphanumeric lowercase) to their canonical Homebrew cask name.
+    func caskTokenLookup() throws -> [String: String] {
+        try dbQueue.read { db in
+            let rows = try Row.fetchAll(db, sql: "SELECT name FROM catalog_entries WHERE kind = 'cask'")
+            var map: [String: String] = [:]
+            map.reserveCapacity(rows.count)
+            for row in rows {
+                let name: String = row["name"]
+                let normalized = Self.normalizeToken(name)
+                if !normalized.isEmpty {
+                    map[normalized] = name
+                }
+            }
+            return map
+        }
+    }
+
+    nonisolated static func normalizeToken(_ raw: String) -> String {
+        String(raw.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+    }
+
     func replaceAll(_ entries: [CatalogEntry]) throws {
         try dbQueue.write { db in
             try db.execute(sql: "DELETE FROM catalog_entries")
