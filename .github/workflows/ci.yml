@@ -8,12 +8,21 @@ on:
 
 jobs:
   test:
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
         run: make generate
-      - name: Run tests
-        run: make test
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project Taproom.xcodeproj \
+            -scheme Taproom \
+            -destination 'platform=macOS' \
+            -only-testing:TaproomTests \
+            -derivedDataPath .build/DerivedData-Tests \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
