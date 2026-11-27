@@ -39,9 +39,16 @@ struct CommandPaletteView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 4))
+                        .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.xs))
                 }
-                .padding(14)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(TaproomTheme.surface, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(TaproomTheme.accent, lineWidth: 1.5)
+                )
+                .padding(12)
 
                 Divider()
 
@@ -75,8 +82,12 @@ struct CommandPaletteView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
                                     .background(
-                                        isSelected ? TaproomTheme.accent.opacity(0.16) : Color.clear,
+                                        isSelected ? TaproomTheme.accent.opacity(0.12) : Color.clear,
                                         in: RoundedRectangle(cornerRadius: 8)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(isSelected ? TaproomTheme.accent : Color.clear, lineWidth: 1)
                                     )
                                     .contentShape(Rectangle())
                                 }

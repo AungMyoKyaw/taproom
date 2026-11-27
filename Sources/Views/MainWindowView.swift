@@ -86,7 +86,7 @@ struct MainWindowView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(appState.prefixPath)
                         .font(TaproomTheme.mono(11, weight: .medium))
-                    Text("Homebrew \(appState.brewVersion)")
+                    Text("Homebrew \(appState.brewVersion) · \(Self.hostArch)")
                         .font(TaproomTheme.mono(10))
                         .foregroundStyle(.secondary)
                 }
@@ -158,6 +158,13 @@ struct MainWindowView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+    private static var hostArch: String {
+        #if arch(arm64)
+        "arm64"
+        #else
+        "x86_64"
+        #endif
+    }
 }
 
 private struct JobQueuePill: View {
@@ -168,9 +175,10 @@ private struct JobQueuePill: View {
     var body: some View {
         GlassEffectContainer(spacing: 12) {
             Button(action: onTap) {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .controlSize(.small)
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(TaproomTheme.accent)
+                        .frame(width: 8, height: 8)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(job.title)
                             .font(.system(size: 12, weight: .semibold))
@@ -178,12 +186,18 @@ private struct JobQueuePill: View {
                             .font(TaproomTheme.mono(10))
                             .foregroundStyle(.secondary)
                     }
+                    ProgressView()
+                        .controlSize(.small)
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: TaproomTheme.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: TaproomTheme.Radius.lg)
+                    .stroke(TaproomTheme.border, lineWidth: 1)
+            )
         }
     }
 }

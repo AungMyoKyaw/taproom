@@ -33,6 +33,23 @@ final class CatalogStore: Sendable {
         try Self.migrate(dbQueue)
     }
 
+    private static let ftsTriggerSQL = """
+        CREATE TRIGGER catalog_ai AFTER INSERT ON catalog_entries BEGIN
+            INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
+            VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
+        END;
+        CREATE TRIGGER catalog_ad AFTER DELETE ON catalog_entries BEGIN
+            INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
+            VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
+        END;
+        CREATE TRIGGER catalog_au AFTER UPDATE ON catalog_entries BEGIN
+            INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
+            VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
+            INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
+            VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
+        END;
+        """
+
     private static func migrate(_ dbQueue: DatabaseQueue) throws {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1_catalog") { db in
@@ -56,20 +73,7 @@ final class CatalogStore: Sendable {
                     content='catalog_entries',
                     content_rowid='rowid'
                 );
-                CREATE TRIGGER catalog_ai AFTER INSERT ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
-                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
-                END;
-                CREATE TRIGGER catalog_ad AFTER DELETE ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
-                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
-                END;
-                CREATE TRIGGER catalog_au AFTER UPDATE ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
-                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
-                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
-                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
-                END;
+                \(Self.ftsTriggerSQL)
                 """)
         }
         migrator.registerMigration("v2_fix_fts_triggers") { db in
@@ -77,20 +81,7 @@ final class CatalogStore: Sendable {
                 DROP TRIGGER IF EXISTS catalog_ai;
                 DROP TRIGGER IF EXISTS catalog_ad;
                 DROP TRIGGER IF EXISTS catalog_au;
-                CREATE TRIGGER catalog_ai AFTER INSERT ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
-                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
-                END;
-                CREATE TRIGGER catalog_ad AFTER DELETE ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
-                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
-                END;
-                CREATE TRIGGER catalog_au AFTER UPDATE ON catalog_entries BEGIN
-                    INSERT INTO catalog_fts(catalog_fts, rowid, id, name, fullName, description, tap)
-                    VALUES ('delete', old.rowid, old.id, old.name, old.fullName, old.description, old.tap);
-                    INSERT INTO catalog_fts(rowid, id, name, fullName, description, tap)
-                    VALUES (new.rowid, new.id, new.name, new.fullName, new.description, new.tap);
-                END;
+                \(Self.ftsTriggerSQL)
                 INSERT INTO catalog_fts(catalog_fts) VALUES('rebuild');
                 """)
         }

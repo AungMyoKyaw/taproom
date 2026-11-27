@@ -43,13 +43,32 @@ struct OutdatedView: View {
                     .width(80)
 
                     TableColumn("Action") { pkg in
-                        Button("Upgrade") {
-                            appState.upgradePackage(name: pkg.name, kind: pkg.kind)
+                        let matchingJob = appState.queue.jobs.first {
+                            !$0.state.isTerminal && $0.args.first == "upgrade" && $0.args.contains(pkg.name)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        if matchingJob?.state == .running {
+                            Text("Upgrading...")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(TaproomTheme.accent)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(TaproomTheme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm))
+                        } else if matchingJob?.state == .queued {
+                            Text("Queued")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(TaproomTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm))
+                        } else {
+                            Button("Upgrade") {
+                                appState.upgradePackage(name: pkg.name, kind: pkg.kind)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
                     }
-                    .width(96)
+                    .width(108)
                 }
                 .scrollContentBackground(.hidden)
                 .background(TaproomTheme.surface)
@@ -105,8 +124,16 @@ struct OutdatedView: View {
                     .frame(width: 8, height: 8)
                 Text("Live Output · \(job.title)")
                     .font(TaproomTheme.mono(12, weight: .semibold))
-                JobElapsedTimerView(job: job)
                 Spacer()
+                HStack(spacing: 4) {
+                    Text("Elapsed")
+                        .font(TaproomTheme.monoSm)
+                        .foregroundStyle(.secondary)
+                    JobElapsedTimerView(job: job)
+                    Text("· Queue: \(appState.queue.queuedCount) remaining")
+                        .font(TaproomTheme.monoSm)
+                        .foregroundStyle(.secondary)
+                }
                 if job.state == .running || job.state == .queued {
                     Button("Cancel Job", role: .destructive) {
                         appState.queue.cancel(jobID: job.id)

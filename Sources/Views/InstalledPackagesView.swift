@@ -21,19 +21,11 @@ struct InstalledPackagesView: View {
             } else {
                 Table(sortedPackages, selection: $state.selectedPackageID, sortOrder: $sortOrder) {
                     TableColumn("Package", value: \.name) { pkg in
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(pkg.name)
-                                .font(.system(size: 13, weight: .medium))
-                            if !pkg.description.isEmpty {
-                                Text(pkg.description)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
-                        .padding(.vertical, 2)
+                        Text(pkg.name)
+                            .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1)
                     }
-                    .width(min: 190, ideal: 260)
+                    .width(min: 180, ideal: 250)
 
                     TableColumn("Kind", value: \.sortableKind) { pkg in
                         KindBadge(kind: pkg.kind)
@@ -41,34 +33,40 @@ struct InstalledPackagesView: View {
                     .width(78)
 
                     TableColumn("Version", value: \.version) { pkg in
-                        let isOutdated = appState.outdatedIDs.contains(pkg.id)
-                        Text(pkg.version)
-                            .font(TaproomTheme.mono(12, weight: .medium))
-                            .foregroundStyle(isOutdated ? TaproomTheme.statusOutdated : .secondary)
+                        if let outdated = appState.outdatedPackages.first(where: { $0.id == pkg.id }) {
+                            Text("\(pkg.version) -> \(outdated.availableVersion)")
+                                .font(TaproomTheme.monoMd)
+                                .foregroundStyle(TaproomTheme.statusOutdated)
+                        } else {
+                            Text(pkg.version)
+                                .font(TaproomTheme.monoMd)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .width(min: 95, ideal: 130)
+                    .width(min: 120, ideal: 165)
 
                     TableColumn("Size", value: \.sortableSize) { pkg in
                         Text(pkg.formattedSize)
-                            .font(TaproomTheme.mono(11))
+                            .font(TaproomTheme.monoSm)
                             .foregroundStyle(.secondary)
                     }
                     .width(min: 70, ideal: 86)
 
                     TableColumn("Tap", value: \.tap) { pkg in
                         Text(pkg.tap)
-                            .font(TaproomTheme.mono(11))
+                            .font(TaproomTheme.monoSm)
                             .foregroundStyle(.secondary)
                     }
                     .width(min: 105, ideal: 140)
 
                     TableColumn("Status", value: \.sortableStatus) { pkg in
                         let isOutdated = appState.outdatedIDs.contains(pkg.id)
+                        let isService = appState.services.contains { $0.name == pkg.name }
                         HStack(spacing: 6) {
                             Circle()
                                 .fill(isOutdated ? TaproomTheme.statusOutdated : TaproomTheme.statusCurrent)
                                 .frame(width: 7, height: 7)
-                            Text(isOutdated ? "Outdated" : (pkg.pinned ? "Pinned" : "Current"))
+                            Text(isOutdated ? "Outdated" : (isService ? "Service" : (pkg.pinned ? "Pinned" : "Current")))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(isOutdated ? TaproomTheme.statusOutdated : .secondary)
                         }

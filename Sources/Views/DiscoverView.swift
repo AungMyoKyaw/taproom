@@ -33,66 +33,65 @@ struct DiscoverView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(TaproomTheme.surface)
             } else {
-                Table(results) {
-                    TableColumn("Package") { entry in
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(entry.name)
-                                .font(.system(size: 13, weight: .medium))
-                            if !entry.description.isEmpty {
-                                Text(entry.description)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(results) { entry in
+                            let installed = appState.installedIDs.contains(entry.id)
+                            HStack(spacing: 14) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 8) {
+                                        Text(entry.name)
+                                            .font(.system(size: 14, weight: .bold))
+                                        KindBadge(kind: entry.kind)
+                                        Text("\(entry.version) · \(entry.tap)")
+                                            .font(TaproomTheme.monoSm)
+                                            .foregroundStyle(.secondary)
+                                        if let url = URL(string: entry.homepage), !entry.homepage.isEmpty {
+                                            Link(destination: url) {
+                                                Image(systemName: "arrow.up.right.square")
+                                                    .font(.system(size: 11))
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            .help(entry.homepage)
+                                        }
+                                    }
+                                    if !entry.description.isEmpty {
+                                        Text(entry.description)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+                                Spacer()
+                                if installed {
+                                    Button {
+                                        appState.selectPackage(named: entry.name)
+                                    } label: {
+                                        Label("Installed", systemImage: "checkmark")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundStyle(TaproomTheme.statusCurrent)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm)
+                                                    .stroke(TaproomTheme.statusCurrent.opacity(0.65), lineWidth: 1)
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Inspect installed package")
+                                } else {
+                                    Button("Install") {
+                                        appState.installPackage(name: entry.name, kind: entry.kind)
+                                    }
+                                    .buttonStyle(TaproomPrimaryButtonStyle())
+                                }
                             }
+                            .taproomCard()
                         }
-                        .padding(.vertical, 2)
                     }
-                    .width(min: 220, ideal: 340)
-
-                    TableColumn("Kind") { entry in
-                        KindBadge(kind: entry.kind)
-                    }
-                    .width(78)
-
-                    TableColumn("Version") { entry in
-                        Text(entry.version)
-                            .font(TaproomTheme.monoMd)
-                            .foregroundStyle(.secondary)
-                    }
-                    .width(min: 95, ideal: 130)
-
-                    TableColumn("Tap") { entry in
-                        Text(entry.tap)
-                            .font(TaproomTheme.monoSm)
-                            .foregroundStyle(.secondary)
-                    }
-                    .width(min: 110, ideal: 150)
-
-                    TableColumn("Action") { entry in
-                        let installed = appState.installedIDs.contains(entry.id)
-                        if installed {
-                            Button {
-                                appState.selectPackage(named: entry.name)
-                            } label: {
-                                Label("Installed", systemImage: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(TaproomTheme.statusCurrent)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(TaproomTheme.statusCurrent.opacity(0.12), in: RoundedRectangle(cornerRadius: TaproomTheme.Radius.sm))
-                            }
-                            .buttonStyle(.plain)
-                            .help("Inspect installed package")
-                        } else {
-                            Button("Install") {
-                                appState.installPackage(name: entry.name, kind: entry.kind)
-                            }
-                            .buttonStyle(TaproomPrimaryButtonStyle())
-                        }
-                    }
-                    .width(96)
+                    .padding(16)
                 }
-                .scrollContentBackground(.hidden)
                 .background(TaproomTheme.surface)
             }
         }

@@ -43,11 +43,13 @@ struct MenuBarPopoverView: View {
                             Text(srv.name)
                                 .font(TaproomTheme.mono(12))
                             Spacer()
-                            Button(srv.status.isRunning ? "Stop" : "Start") {
+                            Button(srv.status.isRunning ? "Running" : "Stopped") {
                                 appState.serviceAction(srv, action: srv.status.isRunning ? "stop" : "start")
                             }
                             .buttonStyle(.borderless)
                             .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(srv.status.isRunning ? TaproomTheme.statusCurrent : .secondary)
+                            .help(srv.status.isRunning ? "Click to stop \(srv.name)" : "Click to start \(srv.name)")
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -63,6 +65,13 @@ struct MenuBarPopoverView: View {
             }
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
+
+            if let lastCheckedAt = appState.lastCheckedAt {
+                Text("Last checked \(lastCheckedAt.formatted(.relative(presentation: .named))) · ⌘R to refresh")
+                    .font(TaproomTheme.mono(10))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding(16)
         .frame(width: 310)
