@@ -18,8 +18,16 @@ jobs:
       - name: Generate Xcode project
         run: make generate
       - name: Run tests
-        run: make test
-      - name: Build & Package DMG
+        run: |
+          xcodebuild -project Taproom.xcodeproj \
+            -scheme Taproom \
+            -configuration Debug \
+            -derivedDataPath .build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_STYLE=Manual \
+            test -destination 'platform=macOS'
+      - name: Build & Package DMG (ad-hoc unless Developer ID secrets are configured)
         run: |
           mkdir -p .build/dmg-staging
           xcodebuild -project Taproom.xcodeproj \

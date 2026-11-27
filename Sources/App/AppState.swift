@@ -169,7 +169,13 @@ final class AppState {
         restartBackgroundTimer()
     }
 
-    var prefixPath: String { runner.prefixPath }
+    var prefixPath: String {
+        let custom = customBrewPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if custom.hasSuffix("/bin/brew") {
+            return String(custom.dropLast("/bin/brew".count))
+        }
+        return runner.prefixPath
+    }
 
     var outdatedIDs: Set<String> {
         Set(outdatedPackages.map(\.id))
@@ -332,6 +338,9 @@ final class AppState {
         }
 
         isRefreshing = false
+        if !discoveredApps.isEmpty {
+            await scanLocalApplications()
+        }
         if pendingRefresh {
             pendingRefresh = false
             await refreshAll()

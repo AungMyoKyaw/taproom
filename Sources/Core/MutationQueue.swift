@@ -82,6 +82,7 @@ final class MutationQueue {
         case .queued:
             jobs[idx].state = .cancelled
             jobs[idx].finishedAt = Date()
+            onJobFinish?(jobs[idx])
         case .running:
             activeHandle?.cancel()
             jobs[idx].state = .cancelled

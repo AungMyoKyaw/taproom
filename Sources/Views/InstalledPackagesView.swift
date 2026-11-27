@@ -83,25 +83,12 @@ struct InstalledPackagesView: View {
     private var filterBar: some View {
         HStack(spacing: 8) {
             ForEach(InstalledFilter.allCases) { filter in
-                let isSelected = appState.installedFilter == filter
-                Button {
+                TaproomFilterPill(
+                    title: filterTitle(filter),
+                    isSelected: appState.installedFilter == filter
+                ) {
                     appState.installedFilter = filter
-                } label: {
-                    Text(filterTitle(filter))
-                        .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(
-                            isSelected ? TaproomTheme.accent.opacity(0.16) : TaproomTheme.surfaceElevated,
-                            in: Capsule()
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(isSelected ? TaproomTheme.accent : TaproomTheme.border, lineWidth: 1)
-                        )
-                        .foregroundStyle(isSelected ? TaproomTheme.accent : .secondary)
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
             Text("\(appState.filteredInstalledPackages.count) shown")

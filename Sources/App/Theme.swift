@@ -102,6 +102,31 @@ struct JobElapsedTimerView: View {
     }
 }
 
+struct TaproomFilterPill: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(
+                    isSelected ? TaproomTheme.accent.opacity(0.16) : TaproomTheme.surfaceElevated,
+                    in: Capsule()
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? TaproomTheme.accent : TaproomTheme.border, lineWidth: 1)
+                )
+                .foregroundStyle(isSelected ? TaproomTheme.accent : .secondary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 extension View {
     func taproomCard(cornerRadius: CGFloat = TaproomTheme.Radius.md, padding: CGFloat = 14) -> some View {
         self

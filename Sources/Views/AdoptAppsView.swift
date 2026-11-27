@@ -130,25 +130,12 @@ struct AdoptAppsView: View {
     private var headerBar: some View {
         HStack(spacing: 8) {
             ForEach(AdoptFilter.allCases) { filter in
-                let isSelected = filterMode == filter
-                Button {
+                TaproomFilterPill(
+                    title: filterTitle(filter),
+                    isSelected: filterMode == filter
+                ) {
                     filterMode = filter
-                } label: {
-                    Text(filterTitle(filter))
-                        .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(
-                            isSelected ? TaproomTheme.accent.opacity(0.16) : TaproomTheme.surfaceElevated,
-                            in: Capsule()
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(isSelected ? TaproomTheme.accent : TaproomTheme.border, lineWidth: 1)
-                        )
-                        .foregroundStyle(isSelected ? TaproomTheme.accent : .secondary)
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
             Button {

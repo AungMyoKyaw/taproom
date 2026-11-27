@@ -87,7 +87,7 @@ struct MainWindowView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(appState.prefixPath)
                         .font(TaproomTheme.mono(11, weight: .medium))
-                    Text("Homebrew \(appState.brewVersion) · \(Self.hostArch)")
+                    Text("Homebrew \(appState.brewVersion) · \(AppDistribution.hostArchitecture)")
                         .font(TaproomTheme.mono(10))
                         .foregroundStyle(.secondary)
                 }
@@ -159,13 +159,6 @@ struct MainWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-    private static var hostArch: String {
-        #if arch(arm64)
-        "arm64"
-        #else
-        "x86_64"
-        #endif
     }
 }
 

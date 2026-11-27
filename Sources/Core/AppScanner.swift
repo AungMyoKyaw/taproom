@@ -97,9 +97,13 @@ enum AppScanner {
                         isManaged = true
                         break
                     }
-                    if let catalogMatch = caskLookup[key] {
-                        matchedToken = catalogMatch
-                        break
+                }
+                if !isManaged {
+                    for key in candidates where !key.isEmpty {
+                        if let catalogMatch = caskLookup[key] {
+                            matchedToken = catalogMatch
+                            break
+                        }
                     }
                 }
 
