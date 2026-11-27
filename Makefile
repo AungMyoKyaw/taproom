@@ -69,6 +69,7 @@ dmg: release
 	@cp -R "$(DERIVED_DATA)/Build/Products/Release/Taproom.app" "$(DERIVED_DATA)/dmg-staging/"
 	@ln -s /Applications "$(DERIVED_DATA)/dmg-staging/Applications"
 	hdiutil create -volname "Taproom" -srcfolder "$(DERIVED_DATA)/dmg-staging" -ov -format UDZO "$(DERIVED_DATA)/Taproom.dmg"
+	codesign --force --timestamp --sign "Developer ID Application" "$(DERIVED_DATA)/Taproom.dmg"
 	@rm -rf $(DERIVED_DATA)/dmg-staging
 
 notarize: dmg
